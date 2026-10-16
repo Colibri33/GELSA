@@ -64,6 +64,11 @@ function Gemelo({ letra, p, setP, ev, modo }) {
       </div>
       <p className="gemelo-num" aria-live="polite">{animado}</p>
       <p className="gemelo-rango">{RANGO_TEXTO[rg]}</p>
+      {modo === 'cartilla' ? (
+        <p className="gemelo-soc">SOC: {ev.soc} pts</p>
+      ) : (
+        <p className="gemelo-soc">SOC ignorado en MPTI</p>
+      )}
     </div>
   );
 }
@@ -80,6 +85,11 @@ export default function Equidad({ evaluados, cfg }) {
   const rB = modo === 'cartilla' ? evB.rangoCartilla : evB.rango;
   const dif = fmt(Math.abs(vA - vB));
   const noResponde = [a, b].some((p) => p.grupo === 'Prefiero no responder');
+  const socA = evA.soc;
+  const socB = evB.soc;
+  const mismoSOC = socA === socB;
+  const iguales = vA === vB;
+  const claseMensaje = !iguales ? 'alerta' : modo === 'mpti' ? 'ok' : mismoSOC ? 'neutro' : 'ok';
 
   const [modoAud, setModoAud] = useState('cartilla');
   const [atributo, setAtributo] = useState('grupo');
@@ -92,6 +102,11 @@ export default function Equidad({ evaluados, cfg }) {
         Las dos personas dieron exactamente las mismas respuestas en todas las pruebas. Solo cambian sus datos
         demográficos. Un modelo justo les debe dar el mismo puntaje.
       </p>
+      <p className="texto nota">
+        Género y edad nunca cambian el puntaje en ninguna fórmula. En la cartilla, solo el campo Grupo con brecha
+        mueve el puntaje vía el SOC (100 si pertenece, 50 si es Ninguno o prefiere no responder). Cambiar de un grupo
+        a otro grupo tampoco cambia el puntaje.
+      </p>
 
       <Selector valor={modo} opciones={MODOS} onCambiar={setModo} nombre="Fórmula" />
 
@@ -100,9 +115,18 @@ export default function Equidad({ evaluados, cfg }) {
         <Gemelo letra="B" p={b} setP={setB} ev={evB} modo={modo} />
       </div>
 
-      <div className={`mensaje-gemelos ${vA === vB ? 'ok' : 'alerta'}`} aria-live="polite">
-        {vA === vB ? (
-          <p>Mismas respuestas, mismo puntaje. Los datos demográficos no cambian el resultado.</p>
+      <div className={`mensaje-gemelos ${claseMensaje}`} aria-live="polite">
+        {iguales ? (
+          modo === 'mpti' ? (
+            <p>Esto es lo esperado: el MPTI ignora género, edad y grupo, así que cambiar esos campos nunca mueve el puntaje. Mismas respuestas, mismo puntaje.</p>
+          ) : mismoSOC ? (
+            <>
+              <p>Mismo puntaje porque ambas tienen la misma condición SOC (SOC {socA}). Pon una en Ninguno y la otra en un grupo con brecha para ver la diferencia de la cartilla.</p>
+              <p>Género y edad no mueven el puntaje; cambiar de un grupo a otro grupo tampoco.</p>
+            </>
+          ) : (
+            <p>Mismas respuestas, mismo puntaje. Los datos demográficos no cambian el resultado.</p>
+          )
         ) : (
           <>
             <p>Mismas respuestas y {dif} puntos de diferencia, causados solo por los datos demográficos.</p>
